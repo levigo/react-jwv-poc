@@ -1,6 +1,8 @@
 import './App.css';
 import React, {createRef} from 'react';
-import {DefaultToolbar, JadiceViewer, Nullable, Toolbar} from "@levigo/webtoolkit-ng-client";
+import {DefaultToolbar, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
+import {Nullable} from "@levigo/utility-types"
+import {Toolbar} from "@levigo/jadice-common-components"
 import {of} from "rxjs";
 
 declare global {
@@ -27,17 +29,9 @@ class App extends React.Component {
     this.viewer = viewer;
     this.viewer.setDocumentFromSource({uri: "https://www.levigo.de/fileadmin/download/jadicewebtoolkit.pdf", password: null});
 
-    const toolbar = this.toolbarRef.current as Toolbar;
+    const toolbar = this.toolbarRef.current as Toolbar<Viewer>;
     toolbar.configure(DefaultToolbar.CONFIG);
-    toolbar.setViewerProvider({
-      getViewer() {
-        return this.getParams();
-      },
-
-      getViewer$() {
-        return this.getParams$();
-      },
-
+    toolbar.setParamsProvider({
       getParams() {
         return viewer;
       },

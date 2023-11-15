@@ -1,0 +1,80 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+    <groupId>org.jadice.jwv</groupId>
+    <artifactId>react-jwv-poc</artifactId>
+    <version>6.25.16</version>
+
+    <description>Getting Started with the jadice web viewer</description>
+    <url>https://levigo.de/info/x/MwLMCg</url>
+
+    <modelVersion>4.0.0</modelVersion>
+
+    <properties>
+        <!-- General project settings -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
+        <!-- levigo dependencies -->
+        <jwv.version>6.25.16</jwv.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.levigo.jadice.webtoolkit</groupId>
+            <artifactId>webtoolkit-ng-server</artifactId>
+            <version>${jwv.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-web</artifactId>
+            <version>6.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-config</artifactId>
+            <version>6.1.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Let's import the jadice web toolkit bill of material. JWT dependency
+                versions are managed via this BOM. -->
+            <dependency>
+                <groupId>com.levigo.jadice.webtoolkit</groupId>
+                <artifactId>webtoolkit-bom</artifactId>
+                <version>${jwv.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.0.5</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
