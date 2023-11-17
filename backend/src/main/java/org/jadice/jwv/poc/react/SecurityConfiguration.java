@@ -27,7 +27,7 @@ public class SecurityConfiguration {
         // To get rid of the startup message giving the default-password use
         // @SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class })
         http.csrf(AbstractHttpConfigurer::disable);
-        return http.build();
+        return http.cors().and().build();
     }
 
     @Bean
