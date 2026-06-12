@@ -5,7 +5,7 @@ import {Nullable} from "@levigo/utility-types"
 import {Toolbar} from "@levigo/jadice-common-components"
 import {of} from "rxjs";
 
-declare global {
+declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "jadice-toolbar": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
@@ -30,7 +30,7 @@ class App extends React.Component {
     this.viewer.setDocumentFromSource({uri: "https://www.levigo.de/fileadmin/download/jadicewebtoolkit.pdf", password: null});
 
     const toolbar = this.toolbarRef.current as Toolbar<Viewer>;
-    toolbar.configure(DefaultToolbar.CONFIG);
+    toolbar.configure(DefaultToolbar.CONFIG as Parameters<typeof toolbar.configure>[0]);
     toolbar.setParamsProvider({
       getParams() {
         return viewer;

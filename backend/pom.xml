@@ -4,7 +4,7 @@
 
     <groupId>org.jadice.jwv</groupId>
     <artifactId>react-jwv-poc</artifactId>
-    <version>6.25.16</version>
+    <version>6.82.6</version>
 
     <description>Getting Started with the jadice web viewer</description>
     <url>https://levigo.de/info/x/MwLMCg</url>
@@ -18,7 +18,7 @@
         <maven.compiler.target>17</maven.compiler.target>
 
         <!-- levigo dependencies -->
-        <jwv.version>6.25.16</jwv.version>
+        <jwv.version>6.82.6</jwv.version>
     </properties>
 
     <dependencies>
@@ -31,13 +31,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>6.1.2</version>
+            <version>6.5.11</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-config</artifactId>
-            <version>6.1.2</version>
+            <version>6.5.11</version>
         </dependency>
 
         <dependency>
@@ -66,7 +66,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.0.5</version>
+                <version>3.5.15</version>
                 <executions>
                     <execution>
                         <goals>
