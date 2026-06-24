@@ -1,0 +1,9 @@
+// Loads the jadice webtoolkit theme. The JADICE_RIGID_THEME mixin emits the
+// `--jadice-*` CSS custom properties onto `body`. These inherit into the web
+// components' shadow DOM and drive themed colors such as the active-button
+// background (`--jadice-button-background-active`), which is what makes the
+// annotation creation buttons show their active color.
+//
+// adaptive-theme follows prefers-color-scheme (light/dark), matching the
+// behavior of the Angular dev-client. Swap for light-theme/dark-theme to pin one.
+@use "@levigo/webtoolkit-ng-client/assets/light-theme";

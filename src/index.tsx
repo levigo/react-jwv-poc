@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
+import './theme.scss';
 import App from './App';
 import {preloadPrecursor} from "@levigo/webtoolkit-ng-client";
 import '@levigo/jadice-web-icons/assets/icon-font.scss';
