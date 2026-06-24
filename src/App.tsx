@@ -1,6 +1,6 @@
 import './App.css';
 import React, {createRef} from 'react';
-import {DefaultToolbar, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
+import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
 import {Nullable} from "@levigo/utility-types"
 import {Toolbar} from "@levigo/jadice-common-components"
 import {of} from "rxjs";
@@ -9,6 +9,7 @@ declare module "react" {
   namespace JSX {
     interface IntrinsicElements {
       "jadice-toolbar": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
+      "jadice-annotation-toolbar": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
     }
   }
 }
@@ -16,6 +17,7 @@ declare module "react" {
 class App extends React.Component {
   divRef: any = createRef();
   toolbarRef: any = createRef();
+  annotationToolbarRef: any = createRef();
   viewer: Nullable<JadiceViewer> = null;
 
   componentDidMount() {
@@ -39,13 +41,36 @@ class App extends React.Component {
       getParams$() {
         return of(viewer);
       }
-    })
+    });
+
+    const annotationToolbar = this.annotationToolbarRef.current as AnnotationToolbar;
+    // Wenn man unten nicht die Weite der Taskleiste manuell einstellen möchte, kann man das Element auch überschreiben
+    // und die Buttons auf einem Grid anlegen:
+    // const verticalStyle = document.createElement('style');
+    // verticalStyle.textContent = '.annotations-list { display: grid; grid-template-columns: repeat(2, auto); }';
+    // annotationToolbar.shadowRoot?.appendChild(verticalStyle);
+
+    annotationToolbar.setViewerProvider(new class extends ViewerProvider {
+      getViewer() { return viewer; }
+      getViewer$() { return of(viewer); }
+    }());
+    AnnotationProfileCache.get().loadAndCache("JWT-Demo-Profile").then((profile) => {
+      annotationToolbar.setProfile(profile.data);
+    });
+  }
+
+  componentWillUnmount() {
+    (this.annotationToolbarRef.current as AnnotationToolbar)?.dispose();
   }
 
   render() {
     return (
-        <div ref={this.divRef} style={{width: "100%", height: "100%", display: "flex", flexDirection: "column"}}>
+        <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column"}}>
           <jadice-toolbar ref={this.toolbarRef}></jadice-toolbar>
+          <div style={{flex: 1, display: "flex", flexDirection: "row"}}>
+            <jadice-annotation-toolbar ref={this.annotationToolbarRef} style={{width: "88px"}}></jadice-annotation-toolbar>
+            <div ref={this.divRef} style={{flex: 1}}></div>
+          </div>
         </div>
     );
   }
