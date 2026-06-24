@@ -1,0 +1,26 @@
+server:
+  port: 8080
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 600MB
+      max-request-size: 600MB
+webtoolkit:
+  clientConfiguration:
+    maxUploadFileSize: 600000000
+  annotationProfiles: /jwt-annotation-profile.xml, /jwt-demo-profile.xml
+  defaultAnnotationProfile: JWT-Demo-Profile
+
+  fileUploadEnabled: true
+  uriProviderHttpEnabled: true
+
+jadice:
+  dss:
+    active: false
+logging:
+  level:
+    root: INFO
+  pattern:
+    console: "%d %-5level [%thread] [clientId:%X{jwt.clientId}] [docId:%X{jwt.docIdentifier}]  %logger: %msg%n"
+    file: "%d %-5level [%thread] [clientId:%X{clientId}] [docId:%X{jwt.docIdentifier}] %logger: %msg%n"
