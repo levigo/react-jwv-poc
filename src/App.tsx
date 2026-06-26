@@ -1,9 +1,10 @@
 import './App.css';
 import React, {createRef} from 'react';
-import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, DefaultTools, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
+import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, DefaultTools, JadiceViewer, ServerConnection, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
 import {Nullable} from "@levigo/utility-types"
-import {Toolbar} from "@levigo/jadice-common-components"
-import {of} from "rxjs";
+import {Action, Toolbar, ToolbarUtils} from "@levigo/jadice-common-components"
+import {JadiceIcon} from "@levigo/jadice-web-icons";
+import {map, of, take} from "rxjs";
 
 declare module "react" {
   namespace JSX {
@@ -13,6 +14,10 @@ declare module "react" {
     }
   }
 }
+
+// Muss zum saveAnnotationsHandlerId (Bean-Name) und Stream-Ziel des Backends passen.
+const SAVE_STREAM_ID = "test93.xml";
+const SAVE_ANNOTATIONS_HANDLER_ID = "SaveJadiceAnnotationsHandler";
 
 class App extends React.Component {
   divRef: any = createRef();
@@ -47,10 +52,27 @@ class App extends React.Component {
       DefaultTools.TEXT_SELECTION,    // Textselektion
     ].forEach(tool => toolManager.setEnabled(tool, true));
 
-    this.viewer.setDocumentFromSource({uri: "https://www.levigo.de/fileadmin/download/jadicewebtoolkit.pdf", password: null});
+    // Dokument samt zugehoeriger Annotationen vom mitgelieferten test-server
+    // (test-server-basic-auth, Port 3000) laden. annotationUrisList ordnet jeder
+    // URI in uris eine Liste von Annotations-URIs zu. Der saveStreamId beim
+    // Speichern (siehe buildSaveAnnotationsAction) referenziert dieselbe Datei.
+    this.viewer.setDocumentFromSource({
+      uris: ["http://localhost:3000/PDFUA.pdf"],
+      annotationUrisList: [["http://localhost:3000/test93.xml"]],
+      password: null
+    } as any);
 
     const toolbar = this.toolbarRef.current as Toolbar<Viewer>;
-    toolbar.configure(DefaultToolbar.CONFIG as Parameters<typeof toolbar.configure>[0]);
+    // DefaultToolbar.CONFIG uebernehmen und um einen "Annotationen speichern"-Button
+    // in den auxiliaryActions (rechte Seite der Toolbar) erweitern.
+    const toolbarConfig = {
+      ...DefaultToolbar.CONFIG,
+      auxiliaryActions: [
+        ...((DefaultToolbar.CONFIG as any).auxiliaryActions ?? []),
+        ToolbarUtils.makeButton(this.buildSaveAnnotationsAction(viewer)),
+      ],
+    };
+    toolbar.configure(toolbarConfig as Parameters<typeof toolbar.configure>[0]);
     toolbar.setParamsProvider({
       getParams() {
         return viewer;
@@ -79,6 +101,33 @@ class App extends React.Component {
 
   componentWillUnmount() {
     (this.annotationToolbarRef.current as AnnotationToolbar)?.dispose();
+  }
+
+  // Toolbar-Action zum Speichern der Annotationen. Der Button ist nur aktiv,
+  // wenn ein Dokument geladen ist.
+  private buildSaveAnnotationsAction(viewer: JadiceViewer): Action<Viewer> {
+    return {
+      icon: JadiceIcon.DEFAULT_SAVE_ANNO_A,
+      label: {translate: false, content: "Save annotations"},
+      isEnabled$: () => viewer.document$().pipe(map(doc => doc != null)),
+      handle: () => this.saveAnnotations(viewer),
+    };
+  }
+
+  // Erzeugt einen Snapshot des aktuellen Dokuments (inkl. Annotationen) und
+  // schickt ihn ueber die SAVE_ANNOS-Konversation an den SaveJadiceAnnotationsHandler
+  // im Backend, der die Annotationen an den test-server zurueckschreibt.
+  private saveAnnotations(viewer: JadiceViewer) {
+    const dto = (viewer.getDocument() as any)?.toSnapshot().toDTO();
+    if (!dto) {
+      return;
+    }
+    ServerConnection.get().initConversation("SAVE_ANNOS", {
+      doc: dto,
+      saveStreamId: SAVE_STREAM_ID,
+      saveAnnotationsHandlerId: SAVE_ANNOTATIONS_HANDLER_ID,
+      annoFormat: "JADICE",
+    }).pipe(take(1)).subscribe(() => window.alert("Annotations saved"));
   }
 
   render() {

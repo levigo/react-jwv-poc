@@ -6,6 +6,20 @@ spring:
     multipart:
       max-file-size: 600MB
       max-request-size: 600MB
+
+# Target endpoint for SaveJadiceAnnotationsHandler. The bundled
+# test-server-basic-auth runs on port 3000 with basic auth (user1/test).
+# NOTE: demo credentials only. In production use a secret/env binding and TLS,
+# never commit credentials.
+annotation:
+  save:
+    base-url: http://localhost:3000
+    connect-timeout: 30
+    request-timeout: 30
+    authentication:
+      username: user1
+      password: test
+
 webtoolkit:
   clientConfiguration:
     maxUploadFileSize: 600000000
@@ -14,6 +28,15 @@ webtoolkit:
 
   fileUploadEnabled: true
   uriProviderHttpEnabled: true
+
+  # Basic-auth credentials the JWT server uses to fetch the document and
+  # annotation URIs from the (protected) test-server on localhost:3000.
+  ddp:
+    http:
+      authentication:
+        - host: localhost
+          user: user1
+          password: test
 
 jadice:
   dss:
