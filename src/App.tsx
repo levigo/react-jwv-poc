@@ -1,8 +1,8 @@
 import './App.css';
 import React, {createRef} from 'react';
-import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, DefaultTools, JadiceViewer, ServerConnection, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
+import {AnnotationProfileCache, AnnotationToolbar, DefaultActions, DefaultToolbar, DefaultTools, FilePicker, JadiceViewer, ServerConnection, Upload, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
 import {Nullable} from "@levigo/utility-types"
-import {Action, Toolbar, ToolbarUtils} from "@levigo/jadice-common-components"
+import {Action, MenuItemType, Toolbar, ToolbarUtils} from "@levigo/jadice-common-components"
 import {JadiceIcon} from "@levigo/jadice-web-icons";
 import {map, of, take} from "rxjs";
 
@@ -15,15 +15,28 @@ declare module "react" {
   }
 }
 
-// Muss zum saveAnnotationsHandlerId (Bean-Name) und Stream-Ziel des Backends passen.
-const SAVE_STREAM_ID = "test93.xml";
+// Muss zum saveAnnotationsHandlerId (Bean-Name) des Backends passen.
 const SAVE_ANNOTATIONS_HANDLER_ID = "SaveJadiceAnnotationsHandler";
+// saveStreamId fuer das initiale Dokument (PDFUA.pdf -> test93.xml auf dem test-server).
+const INITIAL_SAVE_STREAM_ID = "test93.xml";
+// Dateitypen, die der Open-File-Dialog akzeptiert (analog DefaultActions.OPEN_FILE).
+const OPEN_FILE_TYPES = [".pdf", ".png", ".afp", ".jpg", ".jpeg", ".heic", ".bmp", ".tif", ".tiff"];
+
+// Leitet aus einem Dokument-Dateinamen einen Annotations-Stream-Namen ab,
+// z.B. "Report.pdf" -> "Report.xml".
+function toAnnotationStreamId(fileName: string): string {
+  const base = fileName.replace(/\.[^./\\]+$/, "");
+  return `${base || fileName}.xml`;
+}
 
 class App extends React.Component {
   divRef: any = createRef();
   toolbarRef: any = createRef();
   annotationToolbarRef: any = createRef();
   viewer: Nullable<JadiceViewer> = null;
+  // Stream-Name, unter dem die Annotationen gespeichert werden. Wird beim Oeffnen
+  // einer Datei auf einen zum Dokument passenden Namen aktualisiert.
+  private currentSaveStreamId = INITIAL_SAVE_STREAM_ID;
 
   componentDidMount() {
     if (this.viewer != null) {
@@ -63,14 +76,27 @@ class App extends React.Component {
     } as any);
 
     const toolbar = this.toolbarRef.current as Toolbar<Viewer>;
-    // DefaultToolbar.CONFIG uebernehmen und um einen "Annotationen speichern"-Button
-    // in den auxiliaryActions (rechte Seite der Toolbar) erweitern.
+    const defaultMenu = (DefaultToolbar.CONFIG as any).menu;
+    // DefaultToolbar.CONFIG uebernehmen und anpassen:
+    // - "Annotationen speichern"-Button in den auxiliaryActions (rechte Toolbar-Seite)
+    // - den "Open File"-Menuepunkt durch unseren eigenen, fehlertoleranten Handler
+    //   ersetzen (der Default-Handler verschluckt Upload-/Ladefehler still).
     const toolbarConfig = {
       ...DefaultToolbar.CONFIG,
       auxiliaryActions: [
         ...((DefaultToolbar.CONFIG as any).auxiliaryActions ?? []),
         ToolbarUtils.makeButton(this.buildSaveAnnotationsAction(viewer)),
       ],
+      menu: {
+        ...defaultMenu,
+        menuConfiguration: {
+          ...defaultMenu.menuConfiguration,
+          menuItems: [
+            {type: MenuItemType.ACTION, action: {...DefaultActions.OPEN_FILE, handle: () => this.openFile()}},
+            ...defaultMenu.menuConfiguration.menuItems.slice(1),
+          ],
+        },
+      },
     };
     toolbar.configure(toolbarConfig as Parameters<typeof toolbar.configure>[0]);
     toolbar.setParamsProvider({
@@ -103,6 +129,32 @@ class App extends React.Component {
     (this.annotationToolbarRef.current as AnnotationToolbar)?.dispose();
   }
 
+  // Eigener "Open File"-Handler. Im Gegensatz zu DefaultActions.OPEN_FILE faengt er
+  // Fehler ab und macht sie sichtbar (der Default-Handler laesst die Promise still
+  // scheitern, sodass nur "Dialog geht auf, aber kein Dokument" zu sehen ist).
+  // Der Upload geht an den JWT-Server (:8080/upload) und liefert eine upload://-Source.
+  private async openFile() {
+    const viewer = this.viewer;
+    if (!viewer) {
+      return;
+    }
+    try {
+      const fileList = await FilePicker.pickFiles(OPEN_FILE_TYPES);
+      if (!fileList || fileList.length === 0) {
+        return; // vom Nutzer abgebrochen
+      }
+      const file = fileList[0];
+      const source = await Upload.upload(file, null, null, Number.MAX_SAFE_INTEGER);
+      await viewer.setDocumentFromSource(source);
+      // Dateiname merken: Grundlage fuer einen zum Dokument passenden saveStreamId.
+      this.currentSaveStreamId = toAnnotationStreamId(file.name);
+    } catch (e) {
+      console.error("Open file failed:", e);
+      const message = typeof e === "string" ? e : (e instanceof Error ? e.message : String(e));
+      window.alert("Datei konnte nicht geoeffnet werden: " + message);
+    }
+  }
+
   // Toolbar-Action zum Speichern der Annotationen. Der Button ist nur aktiv,
   // wenn ein Dokument geladen ist.
   private buildSaveAnnotationsAction(viewer: JadiceViewer): Action<Viewer> {
@@ -124,7 +176,7 @@ class App extends React.Component {
     }
     ServerConnection.get().initConversation("SAVE_ANNOS", {
       doc: dto,
-      saveStreamId: SAVE_STREAM_ID,
+      saveStreamId: this.currentSaveStreamId,
       saveAnnotationsHandlerId: SAVE_ANNOTATIONS_HANDLER_ID,
       annoFormat: "JADICE",
     }).pipe(take(1)).subscribe(() => window.alert("Annotations saved"));
