@@ -1,46 +1,133 @@
-# Getting Started with Create React App
+# jadice web viewer – React integration PoC
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A proof-of-concept that demonstrates how the jadice web toolkit (JWV) product
+components can be embedded into a **React** application. It is the React
+counterpart to the official *angular getting-started* tutorial (tutorial-002)
+and is intended as a showcase for integrating JWV outside of Angular.
 
-## Available Scripts
+The JWV UI ships as framework-agnostic **Web Components** plus a `JadiceViewer`
+class. This PoC wires them up by hand (no Angular wrapper), which is exactly
+what a React integration looks like.
 
-In the project directory, you can run:
+## What this PoC demonstrates
 
-### `npm start`
+- Embedding the document viewer (`JadiceViewer`) into a plain `div`.
+- The main toolbar as a Web Component (`<jadice-toolbar>`) configured via
+  `DefaultToolbar.CONFIG`, extended with a custom "Save annotations" button.
+- The annotation toolbar as a Web Component (`<jadice-annotation-toolbar>`)
+  driven by an annotation profile.
+- Enabling viewer tools that are registered but inactive by default
+  (mouse-wheel scrolling, text selection, zoom).
+- A custom internationalization provider that resolves the translations
+  shipped with JWV (no Angular `ngx-translate`).
+- Theming via `src/theme.scss` (adaptive light/dark).
+- Opening local files through upload ("Open File").
+- Loading a document with its annotations and saving annotations back to a
+  server.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Architecture
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+The running system consists of three processes:
 
-### `npm test`
+| Component | Tech | Port | Role |
+|-----------|------|------|------|
+| Frontend | Vite + React 19 + TypeScript | 5173 | The React app embedding JWV |
+| JWV backend | Spring Boot (JWV server) | 8080 | Renders documents, handles uploads, runs the annotation-save handler |
+| Test server | Node static server | 3000 | Serves the demo document/annotations and receives saved annotations (basic auth) |
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Data flow for the annotation round-trip:
 
-### `npm run build`
+```
+Browser (React, :5173)
+  → JWV backend (:8080)          render, upload, SAVE_ANNOS conversation
+      → test server (:3000)      fetch PDFUA.pdf + test93.xml, write annotations back
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The browser never talks to the test server directly; the JWV backend fetches
+the (basic-auth protected) URIs and writes annotations back on its behalf.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Prerequisites
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- **Node.js** (for the frontend and the test server)
+- **JDK 17+** for the backend. Note: a default `java` of 11 will fail with
+  `invalid target release: 17`; point `JAVA_HOME` at a 17+ JDK.
+- **Maven**
+- Access to the **levigo Maven repository** so Maven can resolve the
+  `com.levigo.*` artifacts (configure it in your `~/.m2/settings.xml`).
 
-### `npm run eject`
+## Getting started
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Start the three processes in this order.
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 1. Test server (port 3000)
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Serves `PDFUA.pdf` / `test93.xml` and accepts annotation uploads.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+```bash
+cd test-server-basic-auth
+npm install
+node static-server.js --port 3000 --dir ./public --auth --username user1 --password test
+```
 
-## Learn More
+### 2. JWV backend (port 8080)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+cd backend
+# adjust the path to your local JDK 17+
+JAVA_HOME=/path/to/jdk-17 mvn spring-boot:run
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+### 3. Frontend (port 5173)
+
+```bash
+npm install        # postinstall copies the GWT "precursor" assets into public/precursor/
+npm run dev
+```
+
+Then open http://localhost:5173.
+
+Production build: `npm run build` (type-checks via `tsc -b`, then `vite build`);
+preview with `npm run preview`.
+
+## Project layout
+
+| Path | Purpose |
+|------|---------|
+| `src/index.tsx` | App bootstrap: `preloadPrecursor` (points at the backend on :8080), registers the i18n provider, mounts React |
+| `src/App.tsx` | The integration itself: creates the `JadiceViewer`, enables tools, configures the toolbar, wires the annotation toolbar, "Open File" and saving |
+| `src/i18n.ts` | Custom `I18NProvider` that resolves the JSON translations bundled with JWV |
+| `src/theme.scss` | Loads the adaptive JWV theme |
+| `backend/` | Spring Boot JWV server, incl. the annotation-save handler |
+| `backend/src/main/java/.../annotation/` | `SaveJadiceAnnotationsHandler` + its configuration |
+| `backend/src/main/resources/application.yml` | JWV server config: annotation profiles, upload, save target, document-data-provider auth |
+| `test-server-basic-auth/` | Minimal Node server for serving and receiving documents/annotations |
+
+## Configuration notes
+
+- The client points at the backend in `src/index.tsx`
+  (`preloadPrecursor({ serverURL: "http://localhost:8080", ... })`).
+- The initial document and its annotations are loaded in `src/App.tsx` from
+  the test server (`http://localhost:3000/PDFUA.pdf` + `…/test93.xml`).
+- Uploads (`POST /upload`) are provided by the `webtoolkit-addon-upload`
+  dependency in `backend/pom.xml`; without it the endpoint returns 404.
+- Saving annotations uses the `SAVE_ANNOS` conversation, handled server-side by
+  `SaveJadiceAnnotationsHandler`, which writes the annotations to the test
+  server. The target and credentials are configured under `annotation.save` in
+  `application.yml`; `webtoolkit.ddp.http.authentication` lets the backend fetch
+  the protected test-server URIs.
+
+## Security / production caveats
+
+This PoC is wired for local demonstration only:
+
+- The test-server credentials (`user1` / `test`) are committed in plain text in
+  `application.yml`. In production, inject them via environment variables or
+  secrets and never commit credentials.
+- Basic auth is sent base64-encoded only; use TLS (HTTPS) on real networks.
+- The backend `SecurityConfiguration` is explicitly marked "for demo only"
+  (CSRF disabled, permissive CORS) and must be hardened before any real use.
+
+## Related
+
+This project mirrors the angular getting-started **tutorial-002**; consult that
+tutorial for the backend setup and the equivalent Angular client.
