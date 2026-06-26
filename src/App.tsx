@@ -1,6 +1,6 @@
 import './App.css';
 import React, {createRef} from 'react';
-import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
+import {AnnotationProfileCache, AnnotationToolbar, DefaultToolbar, DefaultTools, JadiceViewer, Viewer, ViewerProvider} from "@levigo/webtoolkit-ng-client";
 import {Nullable} from "@levigo/utility-types"
 import {Toolbar} from "@levigo/jadice-common-components"
 import {of} from "rxjs";
@@ -29,6 +29,24 @@ class App extends React.Component {
     const viewer = new JadiceViewer(node);
 
     this.viewer = viewer;
+
+    // Der JadiceViewer-Konstruktor registriert zwar alle Default-Tools, aktiviert
+    // aber nur LINK. Passive Tools wie Mausrad-Scrollen und Textselektion muessen
+    // explizit per setEnabled aktiviert werden. In Angular uebernimmt das die
+    // MultiModeViewerComponent (enableDefaultTools()); ohne Komponente machen wir es hier.
+    const toolManager = viewer.getToolManager();
+    [
+      DefaultTools.PAN,
+      DefaultTools.PAN_FORCE_MOUSE,
+      DefaultTools.PAN_FORCE_TOUCH,
+      DefaultTools.MOUSE_SCROLL,      // Scrollen per Mausrad
+      DefaultTools.MOUSE_WHEEL_ZOOM,  // Zoom per Strg + Mausrad
+      DefaultTools.DOUBLE_TAP_ZOOM,
+      DefaultTools.PINCH_ZOOM,
+      DefaultTools.HIGHLIGHT,
+      DefaultTools.TEXT_SELECTION,    // Textselektion
+    ].forEach(tool => toolManager.setEnabled(tool, true));
+
     this.viewer.setDocumentFromSource({uri: "https://www.levigo.de/fileadmin/download/jadicewebtoolkit.pdf", password: null});
 
     const toolbar = this.toolbarRef.current as Toolbar<Viewer>;
@@ -68,7 +86,7 @@ class App extends React.Component {
         <div style={{width: "100%", height: "100%", display: "flex", flexDirection: "column"}}>
           <jadice-toolbar ref={this.toolbarRef}></jadice-toolbar>
           <div style={{flex: 1, display: "flex", flexDirection: "row"}}>
-            <jadice-annotation-toolbar ref={this.annotationToolbarRef} style={{width: "88px"}}></jadice-annotation-toolbar>
+            <jadice-annotation-toolbar ref={this.annotationToolbarRef} style={{width: "88px", background: "var(--jadice-annotation-panel-background)"}}></jadice-annotation-toolbar>
             <div ref={this.divRef} style={{flex: 1}}></div>
           </div>
         </div>
