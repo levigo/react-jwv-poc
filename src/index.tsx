@@ -12,7 +12,7 @@ import {setupI18N} from "./i18n";
 // Roh-Key angezeigt.
 setupI18N();
 
-preloadPrecursor({assetsPath: import.meta.env.BASE_URL + "precursor/", serverURL: "http://localhost:8080"}).then(() => {
+preloadPrecursor({assetsPath: process.env.PUBLIC_URL + "/precursor/", serverURL: "http://localhost:8080"}).then(() => {
         const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
         root.render(
           <App/>

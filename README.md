@@ -1,5 +1,13 @@
 # jadice web viewer – React integration PoC
 
+> **Branch `repro/react-scripts-5-webpack-5`: build reproduction.**
+> This branch replaces Vite with react-scripts 5.0.1 (Webpack 5), React 18 and
+> TypeScript 4.9. `npm run build` fails on purpose, and `npm start` reports
+> `Failed to compile`, with
+> `Module not found: Error: Can't resolve './precursor-loader'` /
+> `failed to resolve only because it was resolved as fully specified`.
+> See [Reproducing the Webpack 5 build failure](#reproducing-the-webpack-5-build-failure).
+
 A proof-of-concept that demonstrates how the jadice web toolkit (JWV) product
 components can be embedded into a **React** application. It is the React
 counterpart to the official *angular getting-started* tutorial (tutorial-002)
@@ -31,7 +39,7 @@ The running system consists of three processes:
 
 | Component | Tech | Port | Role |
 |-----------|------|------|------|
-| Frontend | Vite + React 19 + TypeScript | 5173 | The React app embedding JWV |
+| Frontend | react-scripts 5 (Webpack 5) + React 18 + TypeScript | 5173 | The React app embedding JWV |
 | JWV backend | Spring Boot (JWV server) | 8080 | Renders documents, handles uploads, runs the annotation-save handler |
 | Test server | Node static server | 3000 | Serves the demo document/annotations and receives saved annotations (basic auth) |
 
@@ -81,13 +89,50 @@ JAVA_HOME=/path/to/jdk-17 mvn spring-boot:run
 
 ```bash
 npm install        # postinstall copies the GWT "precursor" assets into public/precursor/
-npm run dev
+npm start
 ```
 
-Then open http://localhost:5173.
+On this branch the dev server starts on http://localhost:5173 but reports
+`Failed to compile` with the build error described below.
 
-Production build: `npm run build` (type-checks via `tsc -b`, then `vite build`);
-preview with `npm run preview`.
+Production build: `npm run build` (`react-scripts build`).
+
+## Reproducing the Webpack 5 build failure
+
+```bash
+npm ci
+npm run build
+```
+
+Expected result (exit code 1):
+
+```
+Failed to compile.
+
+Module not found: Error: Can't resolve './precursor-loader' in '.../node_modules/@levigo/webtoolkit-ng-client/dist'
+Did you mean 'precursor-loader.js'?
+BREAKING CHANGE: The request './precursor-loader' failed to resolve only because it was resolved as fully specified
+(probably because the origin is strict EcmaScript Module, e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '"type": "module"').
+```
+
+Cause: the `@levigo` packages declare `"type": "module"` but import their own
+files without file extensions (`./precursor-loader` instead of
+`./precursor-loader.js`). Webpack 5 requires full paths for such packages.
+react-scripts hides the Webpack configuration, so the application cannot relax
+this rule without ejecting or adding a tool such as CRACO.
+
+Affected packages in this lockfile: `@levigo/webtoolkit-ng-client` 6.82.6 and
+its dependencies `jadice-common-components` 1.28.1, `jadice-i18n-support`,
+`jadice-math` and `jadice-web-icons`. `npm run build` prints only the first
+error; `npm start` lists all of them (28 at the time of writing).
+
+Verified on this branch: after adding the file extensions to the installed
+packages' `dist` output, `npm run build` compiles successfully. The import
+paths are therefore the only build blocker in this setup.
+
+Note: if npm runs with `ignore-scripts=true`, the `postinstall` step is
+skipped. Run `npm run postinstall` once to copy the precursor files into
+`public/precursor/`. The build failure does not depend on these files.
 
 ## Project layout
 
