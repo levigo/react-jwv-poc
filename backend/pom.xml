@@ -4,7 +4,7 @@
 
     <groupId>org.jadice.jwv</groupId>
     <artifactId>react-jwv-poc</artifactId>
-    <version>6.82.6</version>
+    <version>7.28.1</version>
 
     <description>Getting Started with the jadice web viewer</description>
     <url>https://levigo.de/info/x/MwLMCg</url>
@@ -18,7 +18,9 @@
         <maven.compiler.target>17</maven.compiler.target>
 
         <!-- levigo dependencies -->
-        <jwv.version>6.82.6</jwv.version>
+        <jwv.version>7.28.1</jwv.version>
+        <!-- Must match the Spring Boot version the jadice web toolkit release is built with. -->
+        <spring-boot.version>4.1.2</spring-boot.version>
     </properties>
 
     <dependencies>
@@ -40,13 +42,11 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-web</artifactId>
-            <version>6.5.11</version>
         </dependency>
 
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-config</artifactId>
-            <version>6.5.11</version>
         </dependency>
 
         <dependency>
@@ -58,6 +58,15 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- Manages the Spring versions, including spring-security-web and
+                spring-security-config above. -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
             <!-- Let's import the jadice web toolkit bill of material. JWT dependency
                 versions are managed via this BOM. -->
             <dependency>
@@ -75,7 +84,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.5.15</version>
+                <version>${spring-boot.version}</version>
                 <executions>
                     <execution>
                         <goals>

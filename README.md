@@ -79,6 +79,10 @@ node static-server.js --port 3000 --dir ./public --auth --username user1 --passw
 
 ### 2. JWV backend (port 8080)
 
+The backend uses jadice web toolkit 7.28.1 (Spring Boot 4.1.2). The frontend on
+this branch still pins `@levigo/webtoolkit-ng-client` 6.82.6 to reproduce the
+build failure.
+
 ```bash
 cd backend
 # adjust the path to your local JDK 17+

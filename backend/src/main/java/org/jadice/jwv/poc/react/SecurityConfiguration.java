@@ -5,7 +5,9 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -14,6 +16,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 // THIS A CLASS ONLY FOR DEMO PURPOSES AND SHOULD NOT BE USED IN PRODUCTION
 @Configuration
+@EnableWebSecurity
 public class SecurityConfiguration {
 
     @Bean
@@ -27,7 +30,8 @@ public class SecurityConfiguration {
         // To get rid of the startup message giving the default-password use
         // @SpringBootApplication(exclude = {UserDetailsServiceAutoConfiguration.class })
         http.csrf(AbstractHttpConfigurer::disable);
-        return http.cors().and().build();
+        http.cors(Customizer.withDefaults());
+        return http.build();
     }
 
     @Bean
