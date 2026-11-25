@@ -79,9 +79,8 @@ node static-server.js --port 3000 --dir ./public --auth --username user1 --passw
 
 ### 2. JWV backend (port 8080)
 
-The backend uses jadice web toolkit 7.28.1 (Spring Boot 4.1.2). The frontend on
-this branch still pins `@levigo/webtoolkit-ng-client` 6.82.6 to reproduce the
-build failure.
+The backend uses jadice web toolkit 7.28.1 (Spring Boot 4.1.2), the same version
+as `@levigo/webtoolkit-ng-client` in the frontend.
 
 ```bash
 cd backend
@@ -125,10 +124,18 @@ files without file extensions (`./precursor-loader` instead of
 react-scripts hides the Webpack configuration, so the application cannot relax
 this rule without ejecting or adding a tool such as CRACO.
 
-Affected packages in this lockfile: `@levigo/webtoolkit-ng-client` 6.82.6 and
-its dependencies `jadice-common-components` 1.28.1, `jadice-i18n-support`,
-`jadice-math` and `jadice-web-icons`. `npm run build` prints only the first
-error; `npm start` lists all of them (28 at the time of writing).
+Affected packages in this lockfile: `@levigo/webtoolkit-ng-client` 7.28.1 and
+its dependencies `jadice-common-components` 1.28.1, `jadice-i18n-support`
+2.0.199, `jadice-math` 2.0.188 and `jadice-web-icons` 2.0.190. `npm run build`
+prints only the first error; `npm start` lists all of them (60 at the time of
+writing: 36 unresolved imports and 24 follow-up errors in the application
+sources).
+
+The fix (JWT-5020) is released in `jadice-common-components` 1.28.2,
+`jadice-i18n-support` 2.0.200, `jadice-math` 2.0.189 and `jadice-web-icons`
+2.1.2. `package.json` pins `jadice-common-components` and `jadice-web-icons` to
+the versions before the fix on purpose. To confirm the fix, raise these two and
+`@levigo/webtoolkit-ng-client` to the fixed releases.
 
 Verified on this branch: after adding the file extensions to the installed
 packages' `dist` output, `npm run build` compiles successfully. The import
